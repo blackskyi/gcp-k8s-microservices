@@ -24,6 +24,7 @@ argocd-credentials.txt
 monitoring-credentials.txt
 *.json
 !terraform/*.json
+!apps/**/package.json
 key.json
 github-actions-key.json
 
