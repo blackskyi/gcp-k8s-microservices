@@ -158,7 +158,7 @@ resource "google_container_node_pool" "primary_nodes" {
 
 # Service account for GKE nodes
 resource "google_service_account" "gke_nodes" {
-  account_id   = "${var.cluster_name}-nodes"
+  account_id   = "gke-${var.environment}-nodes"
   display_name = "Service Account for GKE nodes"
   description  = "Service account for GKE node pool"
 }
