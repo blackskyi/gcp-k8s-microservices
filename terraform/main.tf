@@ -13,7 +13,7 @@ terraform {
   }
 
   backend "gcs" {
-    bucket = "YOUR_TERRAFORM_STATE_BUCKET"  # Change this
+    bucket = "job-automation-470905-terraform-state"
     prefix = "terraform/gke-microservices"
   }
 }
