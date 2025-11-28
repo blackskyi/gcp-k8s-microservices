@@ -1,8 +1,8 @@
 # GCP Kubernetes Microservices Deployment
 
-[![Infrastructure](https://github.com/YOUR_USERNAME/gcp-k8s-microservices/workflows/1%EF%B8%8F%E2%83%A3%20Deploy%20Infrastructure/badge.svg)](https://github.com/YOUR_USERNAME/gcp-k8s-microservices/actions)
-[![Configure](https://github.com/YOUR_USERNAME/gcp-k8s-microservices/workflows/2%EF%B8%8F%E2%83%A3%20Configure%20Cluster/badge.svg)](https://github.com/YOUR_USERNAME/gcp-k8s-microservices/actions)
-[![Build-Deploy](https://github.com/YOUR_USERNAME/gcp-k8s-microservices/workflows/3%EF%B8%8F%E2%83%A3%20Build%20and%20Deploy%20Application/badge.svg)](https://github.com/YOUR_USERNAME/gcp-k8s-microservices/actions)
+[![Infrastructure](https://github.com/blackskyi/gcp-k8s-microservices/workflows/1%EF%B8%8F%E2%83%A3%20Deploy%20Infrastructure/badge.svg)](https://github.com/blackskyi/gcp-k8s-microservices/actions)
+[![Configure](https://github.com/blackskyi/gcp-k8s-microservices/workflows/2%EF%B8%8F%E2%83%A3%20Configure%20Cluster/badge.svg)](https://github.com/blackskyi/gcp-k8s-microservices/actions)
+[![Build-Deploy](https://github.com/blackskyi/gcp-k8s-microservices/workflows/3%EF%B8%8F%E2%83%A3%20Build%20and%20Deploy%20Application/badge.svg)](https://github.com/blackskyi/gcp-k8s-microservices/actions)
 
 A complete, production-ready microservices deployment pipeline on Google Cloud Platform (GKE) using:
 
@@ -413,8 +413,8 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## 🙋‍♂️ Support
 
-- **Issues**: [GitHub Issues](https://github.com/YOUR_USERNAME/gcp-k8s-microservices/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/YOUR_USERNAME/gcp-k8s-microservices/discussions)
+- **Issues**: [GitHub Issues](https://github.com/blackskyi/gcp-k8s-microservices/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/blackskyi/gcp-k8s-microservices/discussions)
 
 ## ⭐ Acknowledgments
 

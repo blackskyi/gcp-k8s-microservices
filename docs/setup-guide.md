@@ -105,7 +105,7 @@ sed -i "s/YOUR_TERRAFORM_STATE_BUCKET/${PROJECT_ID}-terraform-state/g" terraform
 
 ```bash
 # Fork on GitHub, then clone
-git clone https://github.com/YOUR_USERNAME/gcp-k8s-microservices.git
+git clone https://github.com/blackskyi/gcp-k8s-microservices.git
 cd gcp-k8s-microservices
 ```
 
@@ -137,10 +137,10 @@ For `production` environment:
 
 ```bash
 # Update ArgoCD app manifest
-sed -i "s/YOUR_USERNAME/${GITHUB_ACTOR}/g" k8s-manifests/argocd/microservices-app.yaml
+sed -i "s/blackskyi/${GITHUB_ACTOR}/g" k8s-manifests/argocd/microservices-app.yaml
 
 # Update README badges
-sed -i "s/YOUR_USERNAME/${GITHUB_ACTOR}/g" README.md
+sed -i "s/blackskyi/${GITHUB_ACTOR}/g" README.md
 ```
 
 ## Local Development
@@ -319,4 +319,4 @@ echo "http://$(kubectl get svc kube-prometheus-stack-grafana -n monitoring -o js
 ## Support
 
 - Check [Troubleshooting Guide](troubleshooting.md)
-- Open [GitHub Issue](https://github.com/YOUR_USERNAME/gcp-k8s-microservices/issues)
+- Open [GitHub Issue](https://github.com/blackskyi/gcp-k8s-microservices/issues)
