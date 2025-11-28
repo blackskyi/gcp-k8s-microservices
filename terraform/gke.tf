@@ -29,7 +29,7 @@ resource "google_container_cluster" "primary" {
   }
 
   # Enable Dataplane V2
-  datapath_provider = "ADVANCED_DATAPATH"
+  datapath_provider = "DATAPATH_PROVIDER_UNSPECIFIED"
 
   # Addons
   addons_config {
