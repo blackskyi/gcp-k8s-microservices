@@ -62,12 +62,6 @@ jobs:
           echo "frontend_tag=$FRONTEND_TAG" >> $GITHUB_OUTPUT
           echo "backend_tag=$BACKEND_TAG" >> $GITHUB_OUTPUT
 
-      - name: Copy microservices app to apps directory
-        run: |
-          mkdir -p apps
-          cp -r ../docker-microservices-app/frontend apps/ || echo "Frontend source not found"
-          cp -r ../docker-microservices-app/backend apps/ || echo "Backend source not found"
-
       - name: Build and push Frontend image
         uses: docker/build-push-action@v5
         with:
