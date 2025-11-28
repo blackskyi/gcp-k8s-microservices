@@ -1,0 +1,143 @@
+name: 2️⃣ Configure Cluster
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+      install_argocd:
+        description: 'Install ArgoCD'
+        type: boolean
+        default: true
+      install_monitoring:
+        description: 'Install Monitoring Stack'
+        type: boolean
+        default: true
+
+env:
+  GCP_REGION: us-central1
+  CLUSTER_NAME: microservices-cluster-${{ github.event.inputs.environment }}
+
+jobs:
+  configure:
+    name: Configure Kubernetes Cluster
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible and dependencies
+        run: |
+          pip install ansible kubernetes google-auth
+
+      - name: Install Ansible collections
+        run: |
+          ansible-galaxy collection install -r ansible/playbooks/requirements.yml
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: 'gke-gcloud-auth-plugin'
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.13.0'
+
+      - name: Get cluster credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.CLUSTER_NAME }} \
+            --region ${{ env.GCP_REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Install ArgoCD
+        if: github.event.inputs.install_argocd == 'true'
+        working-directory: ./ansible/playbooks
+        env:
+          CLUSTER_NAME: ${{ env.CLUSTER_NAME }}
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ env.GCP_REGION }}
+        run: |
+          ansible-playbook -i ../inventory/localhost install-argocd.yml
+
+      - name: Save ArgoCD credentials
+        if: github.event.inputs.install_argocd == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: argocd-credentials
+          path: argocd-credentials.txt
+          retention-days: 7
+
+      - name: Install Monitoring Stack
+        if: github.event.inputs.install_monitoring == 'true'
+        working-directory: ./ansible/playbooks
+        env:
+          CLUSTER_NAME: ${{ env.CLUSTER_NAME }}
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ env.GCP_REGION }}
+        run: |
+          ansible-playbook -i ../inventory/localhost install-monitoring.yml
+
+      - name: Save Monitoring credentials
+        if: github.event.inputs.install_monitoring == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitoring-credentials
+          path: monitoring-credentials.txt
+          retention-days: 7
+
+      - name: Deploy ArgoCD Application
+        if: github.event.inputs.install_argocd == 'true'
+        run: |
+          # Update repo URL in ArgoCD application manifest
+          sed -i "s|YOUR_USERNAME|${{ github.repository_owner }}|g" k8s-manifests/argocd/microservices-app.yaml
+
+          # Apply ArgoCD application
+          kubectl apply -f k8s-manifests/argocd/microservices-app.yaml
+
+      - name: Display configuration summary
+        run: |
+          echo "### Configuration Completed Successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event.inputs.install_argocd }}" == "true" ]; then
+            ARGOCD_IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            echo "**ArgoCD URL:** https://$ARGOCD_IP" >> $GITHUB_STEP_SUMMARY
+            echo "**ArgoCD Credentials:** Check artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ github.event.inputs.install_monitoring }}" == "true" ]; then
+            GRAFANA_IP=$(kubectl get svc kube-prometheus-stack-grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            echo "**Grafana URL:** http://$GRAFANA_IP" >> $GITHUB_STEP_SUMMARY
+            echo "**Grafana Credentials:** Check artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "Next step: Run workflow **3-build-deploy**" >> $GITHUB_STEP_SUMMARY

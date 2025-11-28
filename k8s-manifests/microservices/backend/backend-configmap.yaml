@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: microservices
+data:
+  FLASK_ENV: "production"
+  DATABASE_URL: "postgresql://appuser:changeme123@postgres:5432/appdb"
+  REDIS_URL: "redis://:redis123@redis:6379/0"

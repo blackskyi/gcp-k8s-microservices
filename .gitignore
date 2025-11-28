@@ -1,0 +1,57 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+
+# Ansible
+*.retry
+.ansible/
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# Credentials
+*-credentials.txt
+argocd-credentials.txt
+monitoring-credentials.txt
+*.json
+!terraform/*.json
+key.json
+github-actions-key.json
+
+# Scripts
+port-forward-*.sh
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Build
+dist/
+build/
+node_modules/
+__pycache__/
+*.pyc

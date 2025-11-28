@@ -1,0 +1,103 @@
+name: 4️⃣ Destroy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to destroy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+      confirm_destroy:
+        description: 'Type "DESTROY" to confirm'
+        required: true
+        type: string
+
+env:
+  TF_VERSION: 1.5.0
+  GCP_REGION: us-central1
+
+jobs:
+  destroy:
+    name: Destroy Infrastructure
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm_destroy }}" != "DESTROY" ]; then
+            echo "ERROR: You must type 'DESTROY' to confirm infrastructure destruction"
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: 'gke-gcloud-auth-plugin'
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Get cluster credentials
+        run: |
+          gcloud container clusters get-credentials microservices-cluster-${{ github.event.inputs.environment }} \
+            --region ${{ env.GCP_REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }} || echo "Cluster may not exist"
+
+      - name: Delete ArgoCD applications
+        run: |
+          kubectl delete application --all -n argocd || echo "No ArgoCD applications found"
+
+      - name: Delete microservices namespace
+        run: |
+          kubectl delete namespace microservices --wait=true || echo "Namespace not found"
+
+      - name: Delete monitoring namespace
+        run: |
+          kubectl delete namespace monitoring --wait=true || echo "Namespace not found"
+
+      - name: Delete ArgoCD namespace
+        run: |
+          kubectl delete namespace argocd --wait=true || echo "Namespace not found"
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Create terraform.tfvars
+        working-directory: ./terraform
+        run: |
+          cat > terraform.tfvars <<EOF
+          project_id        = "${{ secrets.GCP_PROJECT_ID }}"
+          region            = "${{ env.GCP_REGION }}"
+          cluster_name      = "microservices-cluster-${{ github.event.inputs.environment }}"
+          environment       = "${{ github.event.inputs.environment }}"
+          EOF
+
+      - name: Terraform Destroy
+        working-directory: ./terraform
+        run: terraform destroy -auto-approve
+
+      - name: Display destruction summary
+        run: |
+          echo "### Infrastructure Destroyed Successfully! 🗑️" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** All resources have been destroyed" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,158 @@
+---
+# Install ArgoCD on GKE Cluster
+# Run with: ansible-playbook -i ../inventory/localhost install-argocd.yml
+
+- name: Install ArgoCD on Kubernetes Cluster
+  hosts: local
+  gather_facts: yes
+
+  vars:
+    argocd_version: "v2.9.3"
+    argocd_namespace: "argocd"
+    argocd_manifest_url: "https://raw.githubusercontent.com/argoproj/argo-cd/{{ argocd_version }}/manifests/install.yaml"
+    cluster_name: "{{ lookup('env', 'CLUSTER_NAME') | default('microservices-cluster', true) }}"
+    gcp_project: "{{ lookup('env', 'GCP_PROJECT') }}"
+    gcp_region: "{{ lookup('env', 'GCP_REGION') | default('us-central1', true) }}"
+
+  tasks:
+    - name: Verify kubectl is installed
+      command: kubectl version --client
+      register: kubectl_version
+      changed_when: false
+
+    - name: Display kubectl version
+      debug:
+        msg: "kubectl is installed: {{ kubectl_version.stdout_lines[0] }}"
+
+    - name: Configure kubectl to use GKE cluster
+      shell: |
+        gcloud container clusters get-credentials {{ cluster_name }} \
+          --region {{ gcp_region }} \
+          --project {{ gcp_project }}
+      environment:
+        USE_GKE_GCLOUD_AUTH_PLUGIN: "True"
+      when: gcp_project != ""
+
+    - name: Create ArgoCD namespace
+      kubernetes.core.k8s:
+        name: "{{ argocd_namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Download ArgoCD manifest
+      get_url:
+        url: "{{ argocd_manifest_url }}"
+        dest: "/tmp/argocd-install.yaml"
+        mode: '0644'
+
+    - name: Install ArgoCD
+      kubernetes.core.k8s:
+        state: present
+        src: "/tmp/argocd-install.yaml"
+        namespace: "{{ argocd_namespace }}"
+
+    - name: Wait for ArgoCD server deployment to be ready
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: argocd-server
+        namespace: "{{ argocd_namespace }}"
+      register: argocd_deployment
+      until: argocd_deployment.resources[0].status.readyReplicas is defined and argocd_deployment.resources[0].status.readyReplicas > 0
+      retries: 30
+      delay: 10
+
+    - name: Patch ArgoCD server service to LoadBalancer
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: argocd-server
+            namespace: "{{ argocd_namespace }}"
+          spec:
+            type: LoadBalancer
+            ports:
+              - name: http
+                port: 80
+                targetPort: 8080
+                protocol: TCP
+              - name: https
+                port: 443
+                targetPort: 8080
+                protocol: TCP
+            selector:
+              app.kubernetes.io/name: argocd-server
+
+    - name: Wait for LoadBalancer IP to be assigned
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Service
+        name: argocd-server
+        namespace: "{{ argocd_namespace }}"
+      register: argocd_service
+      until: argocd_service.resources[0].status.loadBalancer.ingress is defined
+      retries: 20
+      delay: 10
+
+    - name: Get ArgoCD initial admin password
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: argocd-initial-admin-secret
+        namespace: "{{ argocd_namespace }}"
+      register: argocd_secret
+
+    - name: Decode ArgoCD admin password
+      set_fact:
+        argocd_password: "{{ argocd_secret.resources[0].data.password | b64decode }}"
+      when: argocd_secret.resources | length > 0
+
+    - name: Get ArgoCD server external IP
+      set_fact:
+        argocd_external_ip: "{{ argocd_service.resources[0].status.loadBalancer.ingress[0].ip }}"
+
+    - name: Display ArgoCD access information
+      debug:
+        msg:
+          - "=========================================="
+          - "ArgoCD installed successfully!"
+          - "=========================================="
+          - "ArgoCD URL: https://{{ argocd_external_ip }}"
+          - "Username: admin"
+          - "Password: {{ argocd_password }}"
+          - "=========================================="
+          - ""
+          - "To change the password, run:"
+          - "argocd login {{ argocd_external_ip }}"
+          - "argocd account update-password"
+          - "=========================================="
+
+    - name: Save ArgoCD credentials to file
+      copy:
+        content: |
+          ArgoCD Access Information
+          =========================
+          URL: https://{{ argocd_external_ip }}
+          Username: admin
+          Password: {{ argocd_password }}
+
+          To change password:
+          argocd login {{ argocd_external_ip }}
+          argocd account update-password
+        dest: "{{ playbook_dir }}/../../argocd-credentials.txt"
+        mode: '0600'
+
+    - name: Create ArgoCD CLI config directory
+      file:
+        path: "~/.argocd"
+        state: directory
+        mode: '0755'
+
+  post_tasks:
+    - name: Cleanup temporary files
+      file:
+        path: "/tmp/argocd-install.yaml"
+        state: absent
