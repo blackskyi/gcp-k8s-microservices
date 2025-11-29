@@ -140,39 +140,58 @@ jobs:
 
       - name: Wait for ArgoCD sync
         run: |
-          echo "Waiting for ArgoCD to sync..."
+          echo "Waiting for ArgoCD to sync and create resources..."
 
-          # Wait for ArgoCD application to exist
+          # Wait for namespace to be created
+          echo "Waiting for microservices namespace..."
           timeout=300
           elapsed=0
-          while ! kubectl get application microservices-app -n argocd &>/dev/null; do
-            echo "Waiting for ArgoCD application to be created..."
+          while ! kubectl get namespace microservices &>/dev/null; do
+            echo "Namespace not found yet, waiting... ($elapsed seconds elapsed)"
             sleep 10
             elapsed=$((elapsed + 10))
             if [ $elapsed -ge $timeout ]; then
-              echo "Timeout waiting for ArgoCD application"
+              echo "ERROR: Timeout waiting for namespace. Checking ArgoCD status:"
+              kubectl get applications -n argocd
+              kubectl describe application microservices-app -n argocd || true
               exit 1
             fi
           done
-
-          # Wait for namespace to be created
-          kubectl wait --for=condition=exists namespace/microservices --timeout=5m || true
+          echo "✓ Namespace 'microservices' created"
 
           # Wait for deployments to be created
+          echo "Waiting for frontend deployment..."
           timeout=300
           elapsed=0
           while ! kubectl get deployment frontend -n microservices &>/dev/null; do
-            echo "Waiting for frontend deployment to be created by ArgoCD..."
+            echo "Frontend deployment not found yet, waiting... ($elapsed seconds elapsed)"
             sleep 10
             elapsed=$((elapsed + 10))
             if [ $elapsed -ge $timeout ]; then
-              echo "Timeout waiting for deployments. Checking ArgoCD sync status:"
+              echo "ERROR: Timeout waiting for deployments. Checking ArgoCD sync status:"
               kubectl get application microservices-app -n argocd -o yaml
+              kubectl get all -n microservices
               exit 1
             fi
           done
+          echo "✓ Frontend deployment created"
 
-          echo "ArgoCD has created the deployments!"
+          echo "Waiting for backend deployment..."
+          timeout=300
+          elapsed=0
+          while ! kubectl get deployment backend -n microservices &>/dev/null; do
+            echo "Backend deployment not found yet, waiting... ($elapsed seconds elapsed)"
+            sleep 10
+            elapsed=$((elapsed + 10))
+            if [ $elapsed -ge $timeout ]; then
+              echo "ERROR: Timeout waiting for backend deployment"
+              kubectl get all -n microservices
+              exit 1
+            fi
+          done
+          echo "✓ Backend deployment created"
+
+          echo "All ArgoCD resources have been created successfully!"
 
       - name: Check deployment status
         run: |
