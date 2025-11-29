@@ -168,24 +168,32 @@ resource "google_project_iam_member" "gke_nodes_log_writer" {
   project = var.project_id
   role    = "roles/logging.logWriter"
   member  = "serviceAccount:${google_service_account.gke_nodes.email}"
+
+  depends_on = [google_service_account.gke_nodes]
 }
 
 resource "google_project_iam_member" "gke_nodes_metric_writer" {
   project = var.project_id
   role    = "roles/monitoring.metricWriter"
   member  = "serviceAccount:${google_service_account.gke_nodes.email}"
+
+  depends_on = [google_service_account.gke_nodes]
 }
 
 resource "google_project_iam_member" "gke_nodes_monitoring_viewer" {
   project = var.project_id
   role    = "roles/monitoring.viewer"
   member  = "serviceAccount:${google_service_account.gke_nodes.email}"
+
+  depends_on = [google_service_account.gke_nodes]
 }
 
 resource "google_project_iam_member" "gke_nodes_resource_metadata_writer" {
   project = var.project_id
   role    = "roles/stackdriver.resourceMetadata.writer"
   member  = "serviceAccount:${google_service_account.gke_nodes.email}"
+
+  depends_on = [google_service_account.gke_nodes]
 }
 
 # Storage bucket for Artifact Registry (for Docker images)
