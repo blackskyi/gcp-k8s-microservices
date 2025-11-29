@@ -10,7 +10,7 @@
     monitoring_namespace: "monitoring"
     cluster_name: "{{ lookup('env', 'CLUSTER_NAME') | default('microservices-cluster', true) }}"
     gcp_project: "{{ lookup('env', 'GCP_PROJECT') }}"
-    gcp_region: "{{ lookup('env', 'GCP_REGION') | default('us-central1', true) }}"
+    gcp_zone: "{{ lookup('env', 'GCP_ZONE') | default('us-central1-a', true) }}"
 
   tasks:
     - name: Verify kubectl is installed
@@ -32,7 +32,7 @@
     - name: Configure kubectl to use GKE cluster
       shell: |
         gcloud container clusters get-credentials {{ cluster_name }} \
-          --region {{ gcp_region }} \
+          --zone {{ gcp_zone }} \
           --project {{ gcp_project }}
       environment:
         USE_GKE_GCLOUD_AUTH_PLUGIN: "True"

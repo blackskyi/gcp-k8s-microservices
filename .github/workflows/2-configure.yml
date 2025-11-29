@@ -21,7 +21,7 @@ on:
         default: true
 
 env:
-  GCP_REGION: us-central1
+  GCP_ZONE: us-central1-a
   CLUSTER_NAME: microservices-cluster-${{ github.event.inputs.environment }}
 
 jobs:
@@ -82,7 +82,7 @@ jobs:
         env:
           CLUSTER_NAME: ${{ env.CLUSTER_NAME }}
           GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-          GCP_REGION: ${{ env.GCP_REGION }}
+          GCP_ZONE: ${{ env.GCP_ZONE }}
         run: |
           ansible-playbook -i ../inventory/localhost install-argocd.yml
 
@@ -100,7 +100,7 @@ jobs:
         env:
           CLUSTER_NAME: ${{ env.CLUSTER_NAME }}
           GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-          GCP_REGION: ${{ env.GCP_REGION }}
+          GCP_ZONE: ${{ env.GCP_ZONE }}
         run: |
           ansible-playbook -i ../inventory/localhost install-monitoring.yml
 
