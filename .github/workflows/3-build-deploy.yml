@@ -138,6 +138,24 @@ jobs:
             --zone us-central1-a \
             --project ${{ secrets.GCP_PROJECT_ID }}
 
+      - name: Force ArgoCD sync
+        run: |
+          echo "Checking ArgoCD application status..."
+          kubectl get application microservices-app -n argocd
+
+          echo "Forcing ArgoCD to hard refresh and sync..."
+          kubectl patch application microservices-app -n argocd --type=json \
+            -p='[{"op": "replace", "path": "/operation", "value": null}]' || true
+
+          kubectl patch application microservices-app -n argocd --type=json \
+            -p='[{"op": "add", "path": "/metadata/annotations/argocd.argoproj.io~1refresh", "value": "hard"}]'
+
+          sleep 10
+
+          echo "Triggering manual sync..."
+          kubectl patch application microservices-app -n argocd --type=json \
+            -p='[{"op": "replace", "path": "/spec/syncPolicy/automated", "value": {"prune": true, "selfHeal": true, "allowEmpty": false}}]'
+
       - name: Wait for ArgoCD sync
         run: |
           echo "Waiting for ArgoCD to sync and create resources..."
