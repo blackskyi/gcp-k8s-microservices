@@ -68,7 +68,7 @@ jobs:
       - name: Get cluster credentials
         run: |
           gcloud container clusters get-credentials ${{ env.CLUSTER_NAME }} \
-            --region ${{ env.GCP_REGION }} \
+            --zone us-central1-a \
             --project ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Verify cluster connection

@@ -1,7 +1,7 @@
 # GKE Cluster
 resource "google_container_cluster" "primary" {
   name     = var.cluster_name
-  location = var.region
+  location = var.zone  # Use zone instead of region for zonal cluster
 
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
@@ -94,7 +94,7 @@ resource "google_container_cluster" "primary" {
 # Separately managed node pool
 resource "google_container_node_pool" "primary_nodes" {
   name       = "${var.cluster_name}-node-pool"
-  location   = var.region
+  location   = var.zone  # Use zone to match cluster location
   cluster    = google_container_cluster.primary.name
   node_count = var.node_count
 

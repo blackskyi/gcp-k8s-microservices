@@ -84,7 +84,7 @@ variable "min_node_count" {
 variable "max_node_count" {
   description = "Maximum number of nodes for autoscaling"
   type        = number
-  default     = 5
+  default     = 3
 }
 
 variable "disk_size_gb" {
