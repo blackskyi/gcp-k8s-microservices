@@ -25,6 +25,7 @@ monitoring-credentials.txt
 *.json
 !terraform/*.json
 !apps/**/package.json
+!apps/**/package-lock.json
 key.json
 github-actions-key.json
 
