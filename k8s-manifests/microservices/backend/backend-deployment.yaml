@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: us-central1-docker.pkg.dev/job-automation-470905/microservices-cluster-dev-docker/backend:672aab4fb8d60f598c055940b70c31f9cd65c2ad
+          image: us-central1-docker.pkg.dev/job-automation-470905/microservices-cluster-dev-docker/backend:95a530f38876fe253f9837de6dd7218d263cefb9
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
