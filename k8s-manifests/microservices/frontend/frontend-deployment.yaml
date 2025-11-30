@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: FRONTEND_IMAGE_PLACEHOLDER
+          image: us-central1-docker.pkg.dev/job-automation-470905/microservices-cluster-dev-docker/frontend:672aab4fb8d60f598c055940b70c31f9cd65c2ad
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
