@@ -4,8 +4,10 @@ FROM node:20-alpine3.19 AS builder
 # Set working directory
 WORKDIR /app
 
-# Install security updates
-RUN apk update && apk upgrade --no-cache
+# Install security updates and upgrade npm to fix vulnerabilities
+RUN apk update && apk upgrade --no-cache && \
+    npm install -g npm@latest && \
+    npm cache clean --force
 
 # Copy package files
 COPY package*.json ./
@@ -19,10 +21,12 @@ COPY . .
 # Production stage
 FROM node:20-alpine3.19
 
-# Install security updates and curl for healthcheck
+# Install security updates, upgrade npm, and install curl
 RUN apk update && \
     apk upgrade --no-cache && \
-    apk add --no-cache curl=8.5.0-r0 || apk add --no-cache curl
+    apk add --no-cache curl=8.5.0-r0 || apk add --no-cache curl && \
+    npm install -g npm@latest && \
+    npm cache clean --force
 
 # Create app directory
 WORKDIR /app
