@@ -1,0 +1,59 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-signed-images
+  annotations:
+    policies.kyverno.io/title: Verify Signed Container Images
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      This policy verifies that all container images are signed with
+      Sigstore/Cosign and have valid attestations before allowing deployment.
+spec:
+  validationFailureAction: Enforce  # Block unsigned images
+  background: false
+  webhookTimeoutSeconds: 30
+  failurePolicy: Fail
+
+  rules:
+    - name: verify-artifact-registry-images
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - microservices
+      verifyImages:
+        # Verify images from our Artifact Registry
+        - imageReferences:
+            - "us-central1-docker.pkg.dev/*/microservices-cluster-*-docker/*:*"
+          attestations:
+            - predicateType: https://slsa.dev/provenance/v1
+              attestors:
+                - entries:
+                    - keyless:
+                        subject: "https://github.com/*/gcp-k8s-microservices/.github/workflows/*"
+                        issuer: "https://token.actions.githubusercontent.com"
+                        rekor:
+                          url: https://rekor.sigstore.dev
+          mutateDigest: true  # Use digest instead of tag
+          verifyDigest: true  # Verify image digest
+
+    - name: require-image-verification
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - microservices
+      validate:
+        message: >-
+          All images must be signed and have valid SLSA provenance attestations.
+          Images from us-central1-docker.pkg.dev must be signed with GitHub Actions.
+        pattern:
+          spec:
+            containers:
+              - image: "us-central1-docker.pkg.dev/*"

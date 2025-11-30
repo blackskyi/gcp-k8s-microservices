@@ -1,0 +1,116 @@
+---
+- name: Install Kyverno Policy Engine
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    cluster_name: "{{ lookup('env', 'CLUSTER_NAME') | default('microservices-cluster-dev', true) }}"
+    gcp_project: "{{ lookup('env', 'GCP_PROJECT') | default('', true) }}"
+    gcp_zone: "{{ lookup('env', 'GCP_ZONE') | default('us-central1-a', true) }}"
+    kyverno_version: "v1.11.4"
+
+  tasks:
+    - name: Verify required environment variables
+      assert:
+        that:
+          - gcp_project != ''
+          - cluster_name != ''
+        fail_msg: "Required environment variables GCP_PROJECT and CLUSTER_NAME must be set"
+
+    - name: Configure kubectl to use GKE cluster
+      shell: |
+        gcloud container clusters get-credentials {{ cluster_name }} \
+          --zone {{ gcp_zone }} \
+          --project {{ gcp_project }}
+      changed_when: true
+
+    - name: Check if Kyverno is already installed
+      shell: kubectl get namespace kyverno
+      register: kyverno_namespace
+      failed_when: false
+      changed_when: false
+
+    - name: Install Kyverno
+      when: kyverno_namespace.rc != 0
+      block:
+        - name: Create Kyverno namespace
+          shell: kubectl create namespace kyverno
+          changed_when: true
+
+        - name: Install Kyverno using Helm
+          shell: |
+            helm repo add kyverno https://kyverno.github.io/kyverno/
+            helm repo update
+            helm install kyverno kyverno/kyverno \
+              --namespace kyverno \
+              --version {{ kyverno_version }} \
+              --set admissionController.replicas=1 \
+              --set backgroundController.replicas=1 \
+              --set cleanupController.replicas=1 \
+              --set reportsController.replicas=1 \
+              --wait --timeout=5m
+          changed_when: true
+
+        - name: Wait for Kyverno to be ready
+          shell: |
+            kubectl wait --for=condition=ready pod \
+              -l app.kubernetes.io/name=kyverno \
+              -n kyverno \
+              --timeout=300s
+          changed_when: false
+
+    - name: Apply Kyverno policies
+      shell: kubectl apply -f ../../k8s-manifests/kyverno/
+      args:
+        chdir: "{{ playbook_dir }}"
+      changed_when: true
+
+    - name: Wait for policies to be ready
+      shell: |
+        kubectl wait --for=condition=ready clusterpolicy \
+          verify-signed-images \
+          --timeout=60s
+      changed_when: false
+      failed_when: false
+
+    - name: Get Kyverno status
+      shell: |
+        kubectl get pods -n kyverno
+        echo "---"
+        kubectl get clusterpolicy
+      register: kyverno_status
+      changed_when: false
+
+    - name: Display Kyverno status
+      debug:
+        msg: "{{ kyverno_status.stdout_lines }}"
+
+    - name: Save Kyverno info
+      shell: |
+        echo "Kyverno Installation Summary" > kyverno-info.txt
+        echo "============================" >> kyverno-info.txt
+        echo "" >> kyverno-info.txt
+        echo "Version: {{ kyverno_version }}" >> kyverno-info.txt
+        echo "Cluster: {{ cluster_name }}" >> kyverno-info.txt
+        echo "Namespace: kyverno" >> kyverno-info.txt
+        echo "" >> kyverno-info.txt
+        echo "Installed Policies:" >> kyverno-info.txt
+        echo "- verify-signed-images (Enforce)" >> kyverno-info.txt
+        echo "- security-best-practices (Enforce)" >> kyverno-info.txt
+        echo "- block-latest-tag (Enforce)" >> kyverno-info.txt
+        echo "" >> kyverno-info.txt
+        echo "View policy reports:" >> kyverno-info.txt
+        echo "  kubectl get policyreport -A" >> kyverno-info.txt
+        echo "" >> kyverno-info.txt
+        echo "View policy status:" >> kyverno-info.txt
+        echo "  kubectl get clusterpolicy" >> kyverno-info.txt
+      args:
+        chdir: "{{ playbook_dir }}"
+      changed_when: true
+
+    - name: Kyverno installation complete
+      debug:
+        msg:
+          - "✅ Kyverno installed successfully!"
+          - "Policies are now enforcing supply chain security"
+          - "Check kyverno-info.txt for details"

@@ -30,9 +30,19 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'dev' }}
 
+    # Required permissions for GitHub Attestations
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      packages: write
+      security-events: write
+
     outputs:
       frontend_image: ${{ steps.meta-frontend.outputs.tags }}
       backend_image: ${{ steps.meta-backend.outputs.tags }}
+      frontend_digest: ${{ steps.build-frontend.outputs.digest }}
+      backend_digest: ${{ steps.build-backend.outputs.digest }}
 
     steps:
       - name: Checkout code
@@ -62,27 +72,99 @@ jobs:
           echo "frontend_tag=$FRONTEND_TAG" >> $GITHUB_OUTPUT
           echo "backend_tag=$BACKEND_TAG" >> $GITHUB_OUTPUT
 
-      - name: Build and push Frontend image
+      # ============================================================
+      # FRONTEND: Build, Scan, Push, Attest
+      # ============================================================
+
+      - name: Build Frontend image (local)
+        id: build-frontend
         uses: docker/build-push-action@v5
         with:
           context: ./apps/frontend
-          push: true
+          push: false           # Build locally, don't push yet
+          load: true            # Load to Docker daemon for scanning
           tags: |
             ${{ steps.tags.outputs.frontend_tag }}
             ${{ env.REGISTRY_LOCATION }}/${{ secrets.GCP_PROJECT_ID }}/microservices-cluster-${{ github.event.inputs.environment || 'dev' }}-docker/frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Backend image
+      - name: Scan Frontend image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.tags.outputs.frontend_tag }}
+          format: 'sarif'
+          output: 'trivy-frontend-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: 1          # Fail workflow if vulnerabilities found
+
+      - name: Upload Frontend Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()            # Upload even if scan fails
+        with:
+          sarif_file: 'trivy-frontend-results.sarif'
+          category: 'frontend-image'
+
+      - name: Push Frontend image to Artifact Registry
+        if: success()           # Only push if Trivy scan passed
+        run: |
+          docker push ${{ steps.tags.outputs.frontend_tag }}
+          docker push ${{ env.REGISTRY_LOCATION }}/${{ secrets.GCP_PROJECT_ID }}/microservices-cluster-${{ github.event.inputs.environment || 'dev' }}-docker/frontend:latest
+
+      - name: Attest Frontend image provenance
+        if: success()
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY_LOCATION }}/${{ secrets.GCP_PROJECT_ID }}/microservices-cluster-${{ github.event.inputs.environment || 'dev' }}-docker/frontend
+          subject-digest: ${{ steps.build-frontend.outputs.digest }}
+          push-to-registry: true
+
+      # ============================================================
+      # BACKEND: Build, Scan, Push, Attest
+      # ============================================================
+
+      - name: Build Backend image (local)
+        id: build-backend
         uses: docker/build-push-action@v5
         with:
           context: ./apps/backend
-          push: true
+          push: false           # Build locally, don't push yet
+          load: true            # Load to Docker daemon for scanning
           tags: |
             ${{ steps.tags.outputs.backend_tag }}
             ${{ env.REGISTRY_LOCATION }}/${{ secrets.GCP_PROJECT_ID }}/microservices-cluster-${{ github.event.inputs.environment || 'dev' }}-docker/backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Scan Backend image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.tags.outputs.backend_tag }}
+          format: 'sarif'
+          output: 'trivy-backend-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: 1          # Fail workflow if vulnerabilities found
+
+      - name: Upload Backend Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()            # Upload even if scan fails
+        with:
+          sarif_file: 'trivy-backend-results.sarif'
+          category: 'backend-image'
+
+      - name: Push Backend image to Artifact Registry
+        if: success()           # Only push if Trivy scan passed
+        run: |
+          docker push ${{ steps.tags.outputs.backend_tag }}
+          docker push ${{ env.REGISTRY_LOCATION }}/${{ secrets.GCP_PROJECT_ID }}/microservices-cluster-${{ github.event.inputs.environment || 'dev' }}-docker/backend:latest
+
+      - name: Attest Backend image provenance
+        if: success()
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY_LOCATION }}/${{ secrets.GCP_PROJECT_ID }}/microservices-cluster-${{ github.event.inputs.environment || 'dev' }}-docker/backend
+          subject-digest: ${{ steps.build-backend.outputs.digest }}
+          push-to-registry: true
 
       - name: Update Kubernetes manifests
         run: |
@@ -104,8 +186,24 @@ jobs:
         run: |
           echo "### Application Built and Pushed Successfully! 🚀" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Frontend Image:** ${{ steps.tags.outputs.frontend_tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Backend Image:** ${{ steps.tags.outputs.backend_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Images" >> $GITHUB_STEP_SUMMARY
+          echo "**Frontend:** ${{ steps.tags.outputs.frontend_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Backend:** ${{ steps.tags.outputs.backend_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔐 Supply Chain Security" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Scanned with Trivy (CRITICAL & HIGH vulnerabilities)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Signed with Sigstore (GitHub Attestations)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ SLSA Build Provenance generated" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Uploaded to GitHub Security" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔍 Verify Attestations" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "# Verify frontend image" >> $GITHUB_STEP_SUMMARY
+          echo "gh attestation verify oci://${{ steps.tags.outputs.frontend_tag }} --owner ${{ github.repository_owner }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Verify backend image" >> $GITHUB_STEP_SUMMARY
+          echo "gh attestation verify oci://${{ steps.tags.outputs.backend_tag }} --owner ${{ github.repository_owner }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "ArgoCD will automatically deploy the updated manifests" >> $GITHUB_STEP_SUMMARY
 

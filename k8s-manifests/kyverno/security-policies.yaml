@@ -1,0 +1,124 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: security-best-practices
+  annotations:
+    policies.kyverno.io/title: Security Best Practices
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Enforces security best practices including restricting image registries,
+      disallowing privilege escalation, and requiring resource limits.
+spec:
+  validationFailureAction: Enforce
+  background: true
+
+  rules:
+    # Only allow images from approved registries
+    - name: restrict-image-registries
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - microservices
+      validate:
+        message: >-
+          Images must come from approved registries:
+          - us-central1-docker.pkg.dev (our Artifact Registry)
+          - docker.io/library (official Docker images for postgres, redis)
+        pattern:
+          spec:
+            containers:
+              - image: "us-central1-docker.pkg.dev/* | docker.io/library/* | postgres:* | redis:*"
+
+    # Disallow running as root
+    - name: require-non-root
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - microservices
+      validate:
+        message: "Containers must run as non-root user"
+        pattern:
+          spec:
+            =(securityContext):
+              =(runAsNonRoot): true
+            containers:
+              - =(securityContext):
+                  =(runAsNonRoot): true
+
+    # Disallow privilege escalation
+    - name: disallow-privilege-escalation
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - microservices
+      validate:
+        message: "Privilege escalation is not allowed"
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  allowPrivilegeEscalation: false
+
+    # Require resource limits
+    - name: require-resource-limits
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - microservices
+      validate:
+        message: "All containers must have CPU and memory limits defined"
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  limits:
+                    memory: "?*"
+                    cpu: "?*"
+                  requests:
+                    memory: "?*"
+                    cpu: "?*"
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: block-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow Latest Tag
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      The :latest tag is mutable and can lead to unexpected errors if
+      the image changes. Require a specific tag or digest.
+spec:
+  validationFailureAction: Enforce
+  background: true
+
+  rules:
+    - name: disallow-latest-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - microservices
+      validate:
+        message: "Using the :latest tag is not allowed in production"
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest"
