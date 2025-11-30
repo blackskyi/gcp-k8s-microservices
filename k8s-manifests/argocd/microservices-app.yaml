@@ -10,6 +10,8 @@ spec:
     repoURL: https://github.com/blackskyi/gcp-k8s-microservices  # Change this
     targetRevision: HEAD
     path: k8s-manifests/microservices
+    directory:
+      recurse: true
 
   destination:
     server: https://kubernetes.default.svc
