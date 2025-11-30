@@ -19,6 +19,10 @@ on:
         description: 'Install Monitoring Stack'
         type: boolean
         default: true
+      install_kyverno:
+        description: 'Install Kyverno (Supply Chain Security)'
+        type: boolean
+        default: true
 
 env:
   GCP_ZONE: us-central1-a
@@ -112,6 +116,24 @@ jobs:
           path: monitoring-credentials.txt
           retention-days: 7
 
+      - name: Install Kyverno
+        if: github.event.inputs.install_kyverno == 'true'
+        working-directory: ./ansible/playbooks
+        env:
+          CLUSTER_NAME: ${{ env.CLUSTER_NAME }}
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_ZONE: ${{ env.GCP_ZONE }}
+        run: |
+          ansible-playbook -i ../inventory/localhost install-kyverno.yml
+
+      - name: Save Kyverno info
+        if: github.event.inputs.install_kyverno == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kyverno-info
+          path: ansible/playbooks/kyverno-info.txt
+          retention-days: 7
+
       - name: Deploy ArgoCD Application
         if: github.event.inputs.install_argocd == 'true'
         run: |
@@ -137,6 +159,15 @@ jobs:
             GRAFANA_IP=$(kubectl get svc kube-prometheus-stack-grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
             echo "**Grafana URL:** http://$GRAFANA_IP" >> $GITHUB_STEP_SUMMARY
             echo "**Grafana Credentials:** Check artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ github.event.inputs.install_kyverno }}" == "true" ]; then
+            KYVERNO_VERSION=$(kubectl get pods -n kyverno -l app.kubernetes.io/name=kyverno -o jsonpath='{.items[0].spec.containers[0].image}' | cut -d':' -f2)
+            POLICY_COUNT=$(kubectl get clusterpolicy --no-headers 2>/dev/null | wc -l)
+            echo "**Kyverno:** Installed (version $KYVERNO_VERSION)" >> $GITHUB_STEP_SUMMARY
+            echo "**Security Policies:** $POLICY_COUNT policies enforcing" >> $GITHUB_STEP_SUMMARY
+            echo "**Details:** Check artifacts for policy list" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
