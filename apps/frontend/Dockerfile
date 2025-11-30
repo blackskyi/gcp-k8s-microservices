@@ -1,23 +1,28 @@
 # Multi-stage build for Node.js frontend
-FROM node:18-alpine AS builder
+FROM node:20-alpine3.19 AS builder
 
 # Set working directory
 WORKDIR /app
+
+# Install security updates
+RUN apk update && apk upgrade --no-cache
 
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --only=production && npm cache clean --force
 
 # Copy application source
 COPY . .
 
 # Production stage
-FROM node:18-alpine
+FROM node:20-alpine3.19
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# Install security updates and curl for healthcheck
+RUN apk update && \
+    apk upgrade --no-cache && \
+    apk add --no-cache curl=8.5.0-r0 || apk add --no-cache curl
 
 # Create app directory
 WORKDIR /app

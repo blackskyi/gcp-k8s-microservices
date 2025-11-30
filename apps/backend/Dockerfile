@@ -1,11 +1,12 @@
 # Multi-stage build for Python backend
-FROM python:3.11-slim AS builder
+FROM python:3.12-slim-bookworm AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install security updates and system dependencies
 RUN apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
     gcc \
     postgresql-client \
@@ -15,17 +16,20 @@ RUN apt-get update && \
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --user -r requirements.txt
+# Install Python dependencies with latest pip
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir --user -r requirements.txt
 
 # Production stage
-FROM python:3.11-slim
+FROM python:3.12-slim-bookworm
 
-# Install runtime dependencies
+# Install security updates and runtime dependencies
 RUN apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
     postgresql-client \
     curl && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Create app directory
