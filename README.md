@@ -4,13 +4,14 @@
 [![Configure](https://github.com/blackskyi/gcp-k8s-microservices/workflows/2%EF%B8%8F%E2%83%A3%20Configure%20Cluster/badge.svg)](https://github.com/blackskyi/gcp-k8s-microservices/actions)
 [![Build-Deploy](https://github.com/blackskyi/gcp-k8s-microservices/workflows/3%EF%B8%8F%E2%83%A3%20Build%20and%20Deploy%20Application/badge.svg)](https://github.com/blackskyi/gcp-k8s-microservices/actions)
 
-A complete, production-ready microservices deployment pipeline on Google Cloud Platform (GKE) using:
+A complete, production-ready microservices deployment pipeline on Google Cloud Platform (GKE) with full supply chain security using:
 
 - **Infrastructure as Code**: Terraform
 - **Configuration Management**: Ansible
 - **CI/CD**: GitHub Actions
 - **GitOps**: ArgoCD
 - **Monitoring**: Prometheus + Grafana
+- **Supply Chain Security**: Trivy, GitHub Attestations, Kyverno
 - **Container Orchestration**: Kubernetes (GKE)
 
 ## 🏗️ Architecture
@@ -39,12 +40,13 @@ A complete, production-ready microservices deployment pipeline on Google Cloud P
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │                     GKE Cluster                           │  │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐  │  │
-│  │  │ ArgoCD   │  │Prometheus│  │ Frontend │  │ Backend │  │  │
-│  │  │ (GitOps) │  │ +Grafana │  │  (Node)  │  │ (Flask) │  │  │
+│  │  │ ArgoCD   │  │ Kyverno  │  │ Frontend │  │ Backend │  │  │
+│  │  │ (GitOps) │  │ (Policy) │  │  (Node)  │  │ (Flask) │  │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └─────────┘  │  │
 │  │  ┌──────────┐  ┌──────────┐                             │  │
-│  │  │PostgreSQL│  │  Redis   │                             │  │
-│  │  └──────────┘  └──────────┘                             │  │
+│  │  │Prometheus│  │PostgreSQL│  ┌──────────┐               │  │
+│  │  │ +Grafana │  │  +Redis  │  │  More... │               │  │
+│  │  └──────────┘  └──────────┘  └──────────┘               │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐  │
@@ -75,6 +77,14 @@ A complete, production-ready microservices deployment pipeline on Google Cloud P
 - ✅ **Pre-configured** Kubernetes dashboards
 - ✅ **Alertmanager** for alerting
 
+### Supply Chain Security
+- ✅ **Dependabot** for automated dependency updates
+- ✅ **Trivy** vulnerability scanning (blocks CRITICAL/HIGH)
+- ✅ **GitHub Attestations** for image signing & SLSA provenance
+- ✅ **Kyverno** policy enforcement (signature verification)
+- ✅ **Security reporting** in GitHub Security tab
+- ✅ **SLSA Level 2** compliance
+
 ### Application
 - ✅ **Frontend** (Node.js/Express)
 - ✅ **Backend** (Python/Flask)
@@ -87,6 +97,9 @@ A complete, production-ready microservices deployment pipeline on Google Cloud P
 - ✅ **GitHub Actions** workflows
 - ✅ **Automated** infrastructure deployment
 - ✅ **Docker** image building and pushing
+- ✅ **Trivy scanning** before push (blocks vulnerable images)
+- ✅ **Image signing** with GitHub Attestations
+- ✅ **SLSA provenance** generation
 - ✅ **Manifest** updates via Git commits
 
 ## 🚀 Quick Start
@@ -173,14 +186,16 @@ This creates:
    - Environment: `dev`
    - Install ArgoCD: `✓`
    - Install Monitoring: `✓`
+   - Install Kyverno: `✓` (Supply Chain Security)
 5. Click **"Run workflow"**
 
 ⏱️ **Duration**: ~5-10 minutes
 
 This installs:
-- ArgoCD
-- Prometheus
-- Grafana
+- **ArgoCD** (GitOps)
+- **Prometheus** (Metrics)
+- **Grafana** (Dashboards)
+- **Kyverno** (Policy Engine + Security Policies)
 
 **Download artifacts** from the workflow run to get credentials!
 
@@ -197,10 +212,15 @@ This workflow runs automatically on push to `main` branch, or:
 ⏱️ **Duration**: ~5-10 minutes
 
 This:
-- Builds Docker images
-- Pushes to Artifact Registry
+- Builds Docker images (locally on runner)
+- **Scans with Trivy** (blocks if vulnerabilities found)
+- Uploads scan results to GitHub Security
+- Pushes to Artifact Registry (only if scan passed)
+- **Signs images** with GitHub Attestations
+- Generates **SLSA provenance**
 - Updates Kubernetes manifests
 - ArgoCD auto-deploys the app
+- **Kyverno verifies** signatures before allowing deployment
 
 ## 📊 Accessing Services
 
