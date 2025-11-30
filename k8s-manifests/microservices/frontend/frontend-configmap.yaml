@@ -7,3 +7,4 @@ data:
   NODE_ENV: "production"
   BACKEND_API_URL: "http://backend:5000"
   PORT: "3000"
+  APP_VERSION: "v1.0.0"
