@@ -32,7 +32,7 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copy Python dependencies from builder
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /root/.local /usr/local
 
 # Copy application code
 COPY . .
@@ -43,9 +43,6 @@ RUN useradd -m -u 1001 appuser && \
 
 # Switch to non-root user
 USER appuser
-
-# Update PATH to include user packages
-ENV PATH=/root/.local/bin:$PATH
 
 # Expose port
 EXPOSE 5000
