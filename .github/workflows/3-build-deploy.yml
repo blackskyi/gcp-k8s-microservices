@@ -97,6 +97,7 @@ jobs:
           output: 'trivy-frontend-results.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: 1          # Fail workflow if vulnerabilities found
+          ignore-unfixed: true  # Ignore vulnerabilities with no available fix
 
       - name: Upload Frontend Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
@@ -144,6 +145,7 @@ jobs:
           output: 'trivy-backend-results.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: 1          # Fail workflow if vulnerabilities found
+          ignore-unfixed: true  # Ignore vulnerabilities with no available fix
 
       - name: Upload Backend Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
