@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: us-central1-docker.pkg.dev/job-automation-470905/microservices-cluster-dev-docker/frontend:8eef389c53c3490d0cf99a455d28f42fafa6c28d  # Will be replaced by ArgoCD
+          image: FRONTEND_IMAGE_PLACEHOLDER
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

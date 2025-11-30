@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: us-central1-docker.pkg.dev/job-automation-470905/microservices-cluster-dev-docker/backend:8eef389c53c3490d0cf99a455d28f42fafa6c28d  # Will be replaced by ArgoCD
+          image: BACKEND_IMAGE_PLACEHOLDER
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
