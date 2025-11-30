@@ -12,6 +12,7 @@ A complete, production-ready microservices deployment pipeline on Google Cloud P
 - **GitOps**: ArgoCD
 - **Monitoring**: Prometheus + Grafana
 - **Supply Chain Security**: Trivy, GitHub Attestations, Kyverno
+- **Developer Portal**: Backstage with Supply Chain Security Visibility
 - **Container Orchestration**: Kubernetes (GKE)
 
 ## 🏗️ Architecture
@@ -84,6 +85,7 @@ A complete, production-ready microservices deployment pipeline on Google Cloud P
 - ✅ **Kyverno** policy enforcement (signature verification)
 - ✅ **Security reporting** in GitHub Security tab
 - ✅ **SLSA Level 2** compliance
+- ✅ **Backstage Portal** with custom supply chain security plugins
 
 ### Application
 - ✅ **Frontend** (Node.js/Express)
@@ -262,6 +264,39 @@ kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:909
 # Visit: http://localhost:9090
 ```
 
+### Backstage (Developer Portal)
+
+The Backstage portal provides centralized visibility into your supply chain security:
+
+**Local Development**:
+```bash
+cd backstage
+cp .env.example .env
+# Edit .env with your GitHub token
+docker-compose up --build
+
+# Visit: http://localhost:3000
+```
+
+**Features**:
+- 📊 **Service Catalog**: Browse all microservices, APIs, and resources
+- 🔐 **Attestation Verification**: View SLSA provenance and signature status
+- 🛡️ **Trivy Scan Results**: Monitor vulnerabilities by severity
+- 📋 **Kyverno Policy Reports**: Track policy enforcement and compliance
+- 🚀 **ArgoCD Integration**: Monitor GitOps deployment status
+- ☸️ **Kubernetes Integration**: View pods, deployments, and resources
+- 📈 **Prometheus Metrics**: View service metrics and performance
+
+**Documentation**:
+- [Backstage README](backstage/README.md)
+- [Deployment Guide](backstage/DEPLOYMENT-GUIDE.md)
+
+**Custom Plugins**:
+- `AttestationCard` - GitHub attestation verification
+- `TrivyScanCard` - Vulnerability scan visualization
+- `KyvernoReportCard` - Policy compliance dashboard
+- `SLSABadge` - SLSA level indicator
+
 ## 📁 Project Structure
 
 ```
@@ -281,19 +316,34 @@ gcp-k8s-microservices/
 ├── ansible/                    # Configuration Management
 │   ├── playbooks/
 │   │   ├── install-argocd.yml
-│   │   └── install-monitoring.yml
+│   │   ├── install-monitoring.yml
+│   │   └── install-kyverno.yml
 │   └── inventory/
 ├── k8s-manifests/             # Kubernetes Resources
 │   ├── argocd/                # ArgoCD Applications
+│   ├── kyverno/               # Security policies
 │   ├── monitoring/            # Monitoring configs
 │   └── microservices/         # Application manifests
 │       ├── frontend/
 │       ├── backend/
 │       └── database/
+├── backstage/                 # Developer Portal
+│   ├── app-config.yaml        # Backstage configuration
+│   ├── packages/              # App and backend packages
+│   ├── plugins/               # Custom supply chain security plugins
+│   │   └── supply-chain-security/
+│   ├── docker-compose.yaml    # Local development
+│   ├── Dockerfile             # Production image
+│   ├── README.md              # Backstage documentation
+│   └── DEPLOYMENT-GUIDE.md    # Deployment instructions
 ├── apps/                      # Application source code
 │   ├── frontend/
+│   │   └── catalog-info.yaml  # Backstage catalog entity
 │   └── backend/
+│       └── catalog-info.yaml  # Backstage catalog entity
 ├── docs/                      # Documentation
+├── catalog-info.yaml          # Root Backstage catalog
+├── SUPPLY-CHAIN-SECURITY.md   # Security documentation
 └── README.md
 ```
 
@@ -418,6 +468,9 @@ kubectl describe pod -n microservices <pod-name>
 - [Setup Guide](docs/setup-guide.md)
 - [Architecture Details](docs/architecture.md)
 - [Troubleshooting Guide](docs/troubleshooting.md)
+- [Supply Chain Security Guide](SUPPLY-CHAIN-SECURITY.md)
+- [Backstage Portal](backstage/README.md)
+- [Backstage Deployment Guide](backstage/DEPLOYMENT-GUIDE.md)
 
 ## 🤝 Contributing
 

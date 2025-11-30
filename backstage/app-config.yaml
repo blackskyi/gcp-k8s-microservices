@@ -1,0 +1,157 @@
+app:
+  title: Supply Chain Security Portal
+  baseUrl: http://localhost:3000
+
+organization:
+  name: GCP Microservices Platform
+
+backend:
+  baseUrl: http://localhost:7007
+  listen:
+    port: 7007
+  csp:
+    connect-src: ["'self'", 'http:', 'https:']
+  cors:
+    origin: http://localhost:3000
+    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    credentials: true
+  database:
+    client: better-sqlite3
+    connection: ':memory:'
+
+integrations:
+  github:
+    - host: github.com
+      # GitHub token with repo and read:org scopes
+      # Set via environment variable: GITHUB_TOKEN
+      # Or uncomment and add token:
+      # token: ${GITHUB_TOKEN}
+
+proxy:
+  '/rekor':
+    target: 'https://rekor.sigstore.dev'
+    changeOrigin: true
+    pathRewrite:
+      '^/api/proxy/rekor': '/'
+
+  '/trivy':
+    target: 'https://api.github.com'
+    changeOrigin: true
+    headers:
+      Authorization: 'token ${GITHUB_TOKEN}'
+
+  '/kyverno':
+    # Proxy to Kyverno policy reports API
+    target: 'http://kyverno-svc.kyverno.svc.cluster.local'
+    changeOrigin: true
+
+# Catalog configuration
+catalog:
+  import:
+    entityFilename: catalog-info.yaml
+    pullRequestBranchName: backstage-integration
+  rules:
+    - allow: [Component, System, API, Resource, Location, Domain, Group]
+
+  locations:
+    # Root catalog
+    - type: file
+      target: ../catalog-info.yaml
+
+    # Frontend service
+    - type: file
+      target: ../apps/frontend/catalog-info.yaml
+
+    # Backend service
+    - type: file
+      target: ../apps/backend/catalog-info.yaml
+
+    # GitHub organization discovery (optional)
+    # Uncomment to auto-discover repositories
+    # - type: github-discovery
+    #   target: https://github.com/blackskyi
+
+  processors:
+    githubOrg:
+      providers:
+        - target: https://github.com
+          apiBaseUrl: https://api.github.com
+          # token: ${GITHUB_TOKEN}
+
+# Kubernetes plugin configuration
+kubernetes:
+  serviceLocatorMethod:
+    type: 'multiTenant'
+  clusterLocatorMethods:
+    - type: 'config'
+      clusters:
+        - url: ${K8S_CLUSTER_URL}
+          name: gke-microservices
+          authProvider: 'serviceAccount'
+          skipTLSVerify: false
+          skipMetricsLookup: false
+          serviceAccountToken: ${K8S_SERVICE_ACCOUNT_TOKEN}
+          dashboardUrl: ${K8S_DASHBOARD_URL}
+          dashboardApp: standard
+          caData: ${K8S_CA_DATA}
+          customResources:
+            - group: 'kyverno.io'
+              apiVersion: 'v1'
+              plural: 'clusterpolicies'
+            - group: 'kyverno.io'
+              apiVersion: 'v1'
+              plural: 'policyreports'
+
+# ArgoCD plugin configuration
+argocd:
+  appLocatorMethods:
+    - type: 'config'
+      instances:
+        - name: argocd
+          url: ${ARGOCD_SERVER_URL}
+          username: ${ARGOCD_USERNAME}
+          password: ${ARGOCD_PASSWORD}
+
+# Prometheus plugin configuration
+prometheus:
+  proxyPath: /prometheus/api
+  # If running Prometheus in the cluster
+  # Set via environment: PROMETHEUS_URL
+
+# Security insights
+securityInsights:
+  providers:
+    - name: github
+      title: GitHub Security
+      apiBaseUrl: https://api.github.com
+      # token: ${GITHUB_TOKEN}
+
+    - name: trivy
+      title: Trivy Scans
+      type: sarif
+
+    - name: sigstore
+      title: Sigstore Attestations
+      rekorUrl: https://rekor.sigstore.dev
+
+    - name: kyverno
+      title: Policy Reports
+      type: kubernetes
+      namespace: microservices
+
+# TechDocs configuration
+techdocs:
+  builder: 'local'
+  generator:
+    runIn: 'local'
+  publisher:
+    type: 'local'
+
+auth:
+  # See https://backstage.io/docs/auth/ to learn about auth providers
+  environment: development
+  providers:
+    github:
+      development:
+        clientId: ${GITHUB_CLIENT_ID}
+        clientSecret: ${GITHUB_CLIENT_SECRET}

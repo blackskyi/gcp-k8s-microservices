@@ -1,0 +1,1 @@
+export { AttestationCard } from './AttestationCard';

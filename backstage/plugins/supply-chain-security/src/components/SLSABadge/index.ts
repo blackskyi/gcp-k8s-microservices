@@ -1,0 +1,1 @@
+export { SLSABadge } from './SLSABadge';
