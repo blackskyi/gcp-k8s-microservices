@@ -24,7 +24,7 @@ FROM node:20-alpine3.19
 # Install security updates, upgrade npm, and install curl
 RUN apk update && \
     apk upgrade --no-cache && \
-    apk add --no-cache curl=8.5.0-r0 || apk add --no-cache curl && \
+    apk add --no-cache curl && \
     npm install -g npm@latest && \
     npm cache clean --force
 
