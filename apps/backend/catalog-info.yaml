@@ -1,0 +1,130 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: backend
+  description: Python/Flask backend microservice with PostgreSQL and Redis
+  annotations:
+    github.com/project-slug: blackskyi/gcp-k8s-microservices
+    argocd/app-name: microservices
+    backstage.io/kubernetes-id: backend
+    backstage.io/kubernetes-namespace: microservices
+    trivy/image-ref: us-central1-docker.pkg.dev/PROJECT_ID/microservices/backend
+    sigstore/attestation-enabled: 'true'
+    kyverno/policy-enforced: 'true'
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '5000'
+    prometheus.io/path: '/metrics'
+  tags:
+    - python
+    - flask
+    - microservice
+    - slsa
+    - signed
+    - postgresql
+    - redis
+  links:
+    - url: https://github.com/blackskyi/gcp-k8s-microservices/security/code-scanning?query=is%3Aopen+branch%3Amain
+      title: Security Scan Results
+      icon: security
+    - url: https://rekor.sigstore.dev
+      title: Sigstore Transparency Log
+      icon: dashboard
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+  system: microservices-platform
+  providesApis:
+    - backend-api
+  dependsOn:
+    - resource:postgresql
+    - resource:redis
+
+  # Supply Chain Security Metadata
+  securityMetadata:
+    slsaLevel: 2
+    signatureVerification: kyverno
+    vulnerabilityScanning: trivy
+    attestationType: github-attestations
+    provenance: slsa-provenance
+    metricsEnabled: true
+
+  # Deployment Information
+  deployment:
+    platform: gke
+    namespace: microservices
+    replicas: 2
+    hpa: true
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  # Security Policies
+  securityPolicies:
+    - name: verify-signed-images
+      type: kyverno
+      enforced: true
+    - name: security-best-practices
+      type: kyverno
+      enforced: true
+    - name: block-latest-tag
+      type: kyverno
+      enforced: true
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: backend-api
+  description: Backend service REST API
+spec:
+  type: openapi
+  lifecycle: production
+  owner: platform-team
+  system: microservices-platform
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Backend API
+      version: 1.0.0
+    paths:
+      /health:
+        get:
+          summary: Health check endpoint
+          responses:
+            '200':
+              description: Service is healthy
+      /metrics:
+        get:
+          summary: Prometheus metrics endpoint
+          responses:
+            '200':
+              description: Prometheus metrics
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: postgresql
+  description: PostgreSQL database for backend service
+spec:
+  type: database
+  lifecycle: production
+  owner: platform-team
+  system: microservices-platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: redis
+  description: Redis cache for backend service
+spec:
+  type: cache
+  lifecycle: production
+  owner: platform-team
+  system: microservices-platform

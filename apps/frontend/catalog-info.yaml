@@ -1,0 +1,93 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: frontend
+  description: Node.js/Express frontend microservice with supply chain security
+  annotations:
+    github.com/project-slug: blackskyi/gcp-k8s-microservices
+    argocd/app-name: microservices
+    backstage.io/kubernetes-id: frontend
+    backstage.io/kubernetes-namespace: microservices
+    trivy/image-ref: us-central1-docker.pkg.dev/PROJECT_ID/microservices/frontend
+    sigstore/attestation-enabled: 'true'
+    kyverno/policy-enforced: 'true'
+  tags:
+    - nodejs
+    - express
+    - microservice
+    - slsa
+    - signed
+  links:
+    - url: https://github.com/blackskyi/gcp-k8s-microservices/security/code-scanning?query=is%3Aopen+branch%3Amain
+      title: Security Scan Results
+      icon: security
+    - url: https://rekor.sigstore.dev
+      title: Sigstore Transparency Log
+      icon: dashboard
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+  system: microservices-platform
+  providesApis:
+    - frontend-api
+  consumesApis:
+    - backend-api
+
+  # Supply Chain Security Metadata
+  securityMetadata:
+    slsaLevel: 2
+    signatureVerification: kyverno
+    vulnerabilityScanning: trivy
+    attestationType: github-attestations
+    provenance: slsa-provenance
+
+  # Deployment Information
+  deployment:
+    platform: gke
+    namespace: microservices
+    replicas: 2
+    hpa: true
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  # Security Policies
+  securityPolicies:
+    - name: verify-signed-images
+      type: kyverno
+      enforced: true
+    - name: security-best-practices
+      type: kyverno
+      enforced: true
+    - name: block-latest-tag
+      type: kyverno
+      enforced: true
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: frontend-api
+  description: Frontend service HTTP API
+spec:
+  type: openapi
+  lifecycle: production
+  owner: platform-team
+  system: microservices-platform
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Frontend API
+      version: 1.0.0
+    paths:
+      /health:
+        get:
+          summary: Health check endpoint
+          responses:
+            '200':
+              description: Service is healthy

@@ -1,0 +1,32 @@
+app:
+  baseUrl: https://backstage.yourdomain.com
+
+backend:
+  baseUrl: https://backstage.yourdomain.com
+  listen:
+    port: 7007
+  database:
+    client: pg
+    connection:
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      database: backstage
+      ssl:
+        rejectUnauthorized: false
+
+catalog:
+  locations:
+    # Production catalog locations
+    - type: url
+      target: https://github.com/blackskyi/gcp-k8s-microservices/blob/main/catalog-info.yaml
+
+    - type: url
+      target: https://github.com/blackskyi/gcp-k8s-microservices/blob/main/apps/frontend/catalog-info.yaml
+
+    - type: url
+      target: https://github.com/blackskyi/gcp-k8s-microservices/blob/main/apps/backend/catalog-info.yaml
+
+auth:
+  environment: production
