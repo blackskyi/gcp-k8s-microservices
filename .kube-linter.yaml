@@ -1,0 +1,54 @@
+# KubeLinter Configuration
+# https://docs.kubelinter.io/#/configuring-kubelinter
+
+checks:
+  # Exclude checks that are too strict or not applicable
+  doNotAutoAddDefaults: false
+  exclude:
+    - "no-read-only-root-fs"  # Some apps need writable root
+    - "unset-cpu-requirements"  # We use HPA instead
+    - "unset-memory-requirements"  # We use HPA instead
+
+  # Add custom checks
+  addAllBuiltIn: true
+
+# Custom checks
+customChecks:
+  - name: required-label-owner
+    template: required-label
+    params:
+      key: owner
+    remediation: Add 'owner' label to identify the team responsible
+    scope:
+      objectKinds:
+        - Deployment
+        - StatefulSet
+        - DaemonSet
+
+  - name: required-label-environment
+    template: required-label
+    params:
+      key: environment
+    remediation: Add 'environment' label (dev/staging/production)
+    scope:
+      objectKinds:
+        - Deployment
+        - StatefulSet
+        - DaemonSet
+
+# Severity settings
+severity:
+  error:
+    - "privileged-container"
+    - "run-as-non-root"
+    - "sensitive-host-mounts"
+    - "dangling-service"
+  warning:
+    - "no-liveness-probe"
+    - "no-readiness-probe"
+    - "minimum-three-replicas"
+
+# Ignore paths
+ignorePaths:
+  - "k8s-manifests/monitoring/*"  # Monitoring stack has its own rules
+  - "k8s-manifests/argocd/*"  # ArgoCD has its own security

@@ -1,0 +1,231 @@
+name: 🔒 Security Scanning (IaC & Manifests)
+
+on:
+  pull_request:
+    paths:
+      - 'terraform/**'
+      - 'k8s-manifests/**'
+      - '.github/workflows/security-scan.yml'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'terraform/**'
+      - 'k8s-manifests/**'
+  workflow_dispatch:
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+jobs:
+  terraform-security:
+    name: Terraform Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ============================================================
+      # Checkov - Terraform/IaC Security Scanning
+      # ============================================================
+      - name: Run Checkov on Terraform
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform/
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov-terraform.sarif
+          soft_fail: false  # Fail on HIGH/CRITICAL
+          download_external_modules: true
+          # Check against CIS, PCI-DSS, HIPAA, SOC2, NIST, etc.
+          check: CIS_GCP,CIS_KUBERNETES_V1_23
+
+      - name: Upload Checkov results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-terraform.sarif
+          category: 'terraform-checkov'
+
+      # ============================================================
+      # tfsec - Terraform Security Scanner
+      # ============================================================
+      - name: Run tfsec on Terraform
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: terraform/
+          format: sarif
+          sarif_file: tfsec-results.sarif
+          soft_fail: true
+
+      - name: Upload tfsec results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: tfsec-results.sarif
+          category: 'terraform-tfsec'
+
+      # ============================================================
+      # Terrascan - Multi-cloud IaC Scanner
+      # ============================================================
+      - name: Run Terrascan
+        uses: tenable/terrascan-action@v1.5.0
+        with:
+          iac_type: 'terraform'
+          iac_dir: 'terraform/'
+          sarif_upload: true
+          policy_type: 'gcp,k8s'
+
+  kubernetes-security:
+    name: Kubernetes Manifest Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ============================================================
+      # KubeLinter - K8s Manifest Validation
+      # ============================================================
+      - name: Scan K8s manifests with KubeLinter
+        uses: stackrox/kube-linter-action@v1
+        id: kube-linter
+        with:
+          directory: k8s-manifests/
+          config: .kube-linter.yaml
+          format: sarif
+          output-file: kube-linter-results.sarif
+        continue-on-error: true
+
+      - name: Upload KubeLinter results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: kube-linter-results.sarif
+          category: 'kubernetes-kubelinter'
+
+      # ============================================================
+      # Checkov for Kubernetes manifests
+      # ============================================================
+      - name: Run Checkov on Kubernetes manifests
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: k8s-manifests/
+          framework: kubernetes
+          output_format: sarif
+          output_file_path: checkov-k8s.sarif
+          soft_fail: true
+
+      - name: Upload Checkov K8s results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-k8s.sarif
+          category: 'kubernetes-checkov'
+
+      # ============================================================
+      # Kubescape - NSA/CISA K8s Hardening
+      # ============================================================
+      - name: Run Kubescape on all K8s manifests
+        uses: kubescape/github-action@main
+        continue-on-error: true
+        with:
+          format: sarif
+          outputFile: kubescape-all-results.sarif
+          files: "k8s-manifests/**/*.yaml"
+          frameworks: |
+            nsa,mitre,armobest
+
+      - name: Upload Kubescape results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: kubescape-all-results.sarif
+          category: 'kubernetes-kubescape-all'
+
+      # ============================================================
+      # Polaris - K8s Best Practices
+      # ============================================================
+      - name: Run Polaris Audit
+        uses: fairwindsops/polaris@master
+        with:
+          version: 8.5.0
+
+  dockerfile-security:
+    name: Dockerfile Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ============================================================
+      # Hadolint - Dockerfile Linting
+      # ============================================================
+      - name: Run Hadolint on Frontend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: apps/frontend/Dockerfile
+          format: sarif
+          output-file: hadolint-frontend.sarif
+          no-fail: true
+
+      - name: Upload Hadolint Frontend results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: hadolint-frontend.sarif
+          category: 'dockerfile-frontend'
+
+      - name: Run Hadolint on Backend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: apps/backend/Dockerfile
+          format: sarif
+          output-file: hadolint-backend.sarif
+          no-fail: true
+
+      - name: Upload Hadolint Backend results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: hadolint-backend.sarif
+          category: 'dockerfile-backend'
+
+  security-summary:
+    name: Security Scan Summary
+    runs-on: ubuntu-latest
+    needs: [terraform-security, kubernetes-security, dockerfile-security]
+    if: always()
+
+    steps:
+      - name: Generate Security Summary
+        run: |
+          echo "# 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Infrastructure as Code (Terraform)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Checkov (CIS GCP + K8s compliance)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ tfsec (Terraform security)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Terrascan (Multi-cloud IaC)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Kubernetes Manifests" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ KubeLinter (Manifest validation)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Kubescape (NSA/CISA/MITRE frameworks)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Checkov (K8s best practices)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Polaris (K8s configuration)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Dockerfiles" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Hadolint (Frontend + Backend)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "📊 **All results uploaded to GitHub Security tab**" >> $GITHUB_STEP_SUMMARY

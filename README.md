@@ -78,14 +78,21 @@ A complete, production-ready microservices deployment pipeline on Google Cloud P
 - ✅ **Pre-configured** Kubernetes dashboards
 - ✅ **Alertmanager** for alerting
 
-### Supply Chain Security
-- ✅ **Dependabot** for automated dependency updates
-- ✅ **Trivy** vulnerability scanning (blocks CRITICAL/HIGH)
-- ✅ **GitHub Attestations** for image signing & SLSA provenance
-- ✅ **Kyverno** policy enforcement (signature verification)
-- ✅ **Security reporting** in GitHub Security tab
-- ✅ **SLSA Level 2** compliance
-- ✅ **Backstage Portal** with custom supply chain security plugins
+### Supply Chain Security (Enhanced)
+- ✅ **Multi-layer scanning**: Semgrep (SAST) + Grype + Trivy + Kubescape
+- ✅ **SBOM Generation**: Syft creates SPDX & CycloneDX SBOMs
+- ✅ **Enhanced Signing**: Cosign (Sigstore) + GitHub Attestations
+- ✅ **SBOM Attestation**: SBOMs attached to images via Cosign
+- ✅ **IaC Security**: Checkov + tfsec + Terrascan for Terraform/K8s
+- ✅ **K8s Validation**: KubeLinter + Kubescape (NSA/CISA frameworks)
+- ✅ **Dockerfile Linting**: Hadolint for best practices
+- ✅ **Kyverno** runtime policy enforcement
+- ✅ **SLSA Level 2+** compliance
+- ✅ **Backstage Portal** with supply chain security visibility
+
+**New Documentation:**
+- 📖 [Advanced Security Guide](ADVANCED-SECURITY.md)
+- 🔧 [Security Tools Reference](SECURITY-TOOLS-REFERENCE.md)
 
 ### Application
 - ✅ **Frontend** (Node.js/Express)
@@ -95,13 +102,16 @@ A complete, production-ready microservices deployment pipeline on Google Cloud P
 - ✅ **Horizontal Pod Autoscaling** (HPA)
 - ✅ **Health checks** and readiness probes
 
-### CI/CD
-- ✅ **GitHub Actions** workflows
+### CI/CD (Enhanced)
+- ✅ **GitHub Actions** workflows with advanced security
 - ✅ **Automated** infrastructure deployment
-- ✅ **Docker** image building and pushing
-- ✅ **Trivy scanning** before push (blocks vulnerable images)
-- ✅ **Image signing** with GitHub Attestations
-- ✅ **SLSA provenance** generation
+- ✅ **Multi-stage security scanning** (code → image → manifest → runtime)
+- ✅ **SBOM generation** with Syft (SPDX + CycloneDX)
+- ✅ **Dual vulnerability scanning** (Grype + Trivy)
+- ✅ **Enhanced image signing** (Cosign + GitHub Attestations)
+- ✅ **SBOM attestation** attached to images
+- ✅ **SLSA Level 2+ provenance**
+- ✅ **IaC security scanning** (daily + on PR)
 - ✅ **Manifest** updates via Git commits
 
 ## 🚀 Quick Start
