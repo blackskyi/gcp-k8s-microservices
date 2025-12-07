@@ -151,12 +151,14 @@ jobs:
           category: 'kubernetes-kubescape-all'
 
       # ============================================================
-      # Polaris - K8s Best Practices
+      # Polaris - K8s Best Practices (DISABLED - action has build issues)
+      # TODO: Re-enable when fairwindsops/polaris action is fixed
+      # Alternative: Run Polaris via CLI in a custom step
       # ============================================================
-      - name: Run Polaris Audit
-        uses: fairwindsops/polaris@master
-        with:
-          version: 8.5.0
+      # - name: Run Polaris Audit
+      #   uses: fairwindsops/polaris@master
+      #   with:
+      #     version: 8.5.0
 
   dockerfile-security:
     name: Dockerfile Security Scan
@@ -221,7 +223,6 @@ jobs:
           echo "- ✅ KubeLinter (Manifest validation)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Kubescape (NSA/CISA/MITRE frameworks)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Checkov (K8s best practices)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Polaris (K8s configuration)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "## Dockerfiles" >> $GITHUB_STEP_SUMMARY
