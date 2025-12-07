@@ -72,7 +72,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Semgrep results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: semgrep.sarif
@@ -151,7 +151,7 @@ jobs:
         continue-on-error: true  # Don't fail workflow, but report findings
 
       - name: Upload Grype Frontend results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: ${{ steps.grype-frontend.outputs.sarif }}
@@ -171,7 +171,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Frontend Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-frontend-results.sarif'
@@ -189,7 +189,7 @@ jobs:
           files: "k8s-manifests/microservices/frontend/*.yaml"
 
       - name: Upload Kubescape results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: kubescape-frontend-results.sarif
@@ -305,7 +305,7 @@ jobs:
         continue-on-error: true  # Don't fail workflow, but report findings
 
       - name: Upload Grype Backend results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: ${{ steps.grype-backend.outputs.sarif }}
@@ -325,7 +325,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Backend Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-backend-results.sarif'
@@ -343,7 +343,7 @@ jobs:
           files: "k8s-manifests/microservices/backend/*.yaml"
 
       - name: Upload Kubescape Backend results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: kubescape-backend-results.sarif

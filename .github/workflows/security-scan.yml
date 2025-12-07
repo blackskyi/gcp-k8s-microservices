@@ -48,7 +48,7 @@ jobs:
           check: CIS_GCP,CIS_KUBERNETES_V1_23
 
       - name: Upload Checkov results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: checkov-terraform.sarif
@@ -66,7 +66,7 @@ jobs:
           additional_args: --out tfsec-results.sarif
 
       - name: Upload tfsec results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: tfsec-results.sarif
@@ -107,7 +107,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload KubeLinter results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always() && hashFiles('kube-linter-results.sarif') != ''
         with:
           sarif_file: kube-linter-results.sarif
@@ -127,7 +127,7 @@ jobs:
           soft_fail: true
 
       - name: Upload Checkov K8s results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: checkov-k8s.sarif
@@ -147,7 +147,7 @@ jobs:
             nsa,mitre,armobest
 
       - name: Upload Kubescape results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: kubescape-all-results.sarif
@@ -183,7 +183,7 @@ jobs:
           no-fail: true
 
       - name: Upload Hadolint Frontend results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: hadolint-frontend.sarif
@@ -198,7 +198,7 @@ jobs:
           no-fail: true
 
       - name: Upload Hadolint Backend results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: hadolint-backend.sarif
@@ -224,7 +224,7 @@ jobs:
           GITLEAKS_ENABLE_SUMMARY: true
 
       - name: Upload Gitleaks results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: results.sarif
