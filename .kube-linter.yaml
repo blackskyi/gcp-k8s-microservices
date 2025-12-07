@@ -14,7 +14,7 @@ checks:
 
 # Custom checks
 customChecks:
-  - name: required-label-owner
+  - name: custom-require-owner-label
     template: required-label
     params:
       key: owner
@@ -25,7 +25,7 @@ customChecks:
         - StatefulSet
         - DaemonSet
 
-  - name: required-label-environment
+  - name: custom-require-environment-label
     template: required-label
     params:
       key: environment
