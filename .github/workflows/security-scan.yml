@@ -108,10 +108,11 @@ jobs:
 
       - name: Upload KubeLinter results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && hashFiles('kube-linter-results.sarif') != ''
         with:
           sarif_file: kube-linter-results.sarif
           category: 'kubernetes-kubelinter'
+        continue-on-error: true
 
       # ============================================================
       # Checkov for Kubernetes manifests
