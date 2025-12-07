@@ -68,7 +68,15 @@ jobs:
             p/owasp-top-ten
             p/docker
             p/kubernetes
+          generateSarif: true
         continue-on-error: true
+
+      - name: Upload Semgrep results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: 'semgrep'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
