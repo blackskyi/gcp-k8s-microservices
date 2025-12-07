@@ -1,5 +1,14 @@
 name: 3️⃣ Build and Deploy Application
 
+# This workflow triggers on:
+# 1. Code changes (apps/**) - Full rebuild, scan, and deploy
+# 2. Workflow changes - Test workflow modifications
+#
+# Note: k8s-manifests/** changes do NOT trigger this workflow
+# Rationale: Deployment YAML changes should not rebuild images
+# ArgoCD automatically syncs manifest changes without rebuilding
+# This prevents unnecessary image rebuilds and infinite loops
+
 on:
   push:
     branches:
@@ -7,7 +16,6 @@ on:
       - develop
     paths:
       - 'apps/**'
-      - 'k8s-manifests/microservices/**'
       - '.github/workflows/3-build-deploy.yml'
   workflow_dispatch:
     inputs:
