@@ -92,7 +92,7 @@ jobs:
 
       - name: Save ArgoCD credentials
         if: github.event.inputs.install_argocd == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: argocd-credentials
           path: argocd-credentials.txt
@@ -110,7 +110,7 @@ jobs:
 
       - name: Save Monitoring credentials
         if: github.event.inputs.install_monitoring == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: monitoring-credentials
           path: monitoring-credentials.txt
@@ -128,7 +128,7 @@ jobs:
 
       - name: Save Kyverno info
         if: github.event.inputs.install_kyverno == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: kyverno-info
           path: ansible/playbooks/kyverno-info.txt

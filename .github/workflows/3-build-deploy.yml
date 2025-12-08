@@ -248,7 +248,7 @@ jobs:
       # ============================================================
       - name: Upload Frontend SBOM as artifact
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: frontend-sbom
           path: |
@@ -395,7 +395,7 @@ jobs:
       # ============================================================
       - name: Upload Backend SBOM as artifact
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: backend-sbom
           path: |
