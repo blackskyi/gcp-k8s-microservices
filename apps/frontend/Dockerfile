@@ -1,5 +1,5 @@
 # Multi-stage build for Node.js frontend
-FROM node:20-alpine3.19 AS builder
+FROM node:23-alpine3.19 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -19,7 +19,7 @@ RUN npm ci --only=production && npm cache clean --force
 COPY . .
 
 # Production stage
-FROM node:20-alpine3.19
+FROM node:23-alpine3.19
 
 # Install security updates, upgrade npm, and install curl
 # Note: removed exact package-version pin to allow apk to select the correct package
